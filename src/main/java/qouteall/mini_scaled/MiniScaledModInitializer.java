@@ -1,20 +1,23 @@
 package qouteall.mini_scaled;
 
+import com.ibm.icu.number.Scale;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.impl.itemgroup.MinecraftItemGroups;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -36,7 +39,16 @@ import qouteall.q_misc_util.my_util.LimitedLogger;
 public class MiniScaledModInitializer implements ModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger(MiniScaledModInitializer.class);
     private static final LimitedLogger LIMITED_LOGGER = new LimitedLogger(50);
-    
+
+    public static final CreativeModeTab BOXES_GROUP = FabricItemGroupBuilder.create(
+            new ResourceLocation("mini_scaled", "boxes"))
+            .icon(() -> new ItemStack(ScaleBoxEntranceItem.instance))
+            .appendItems((items) -> {
+                items.addAll(ScaleBoxEntranceItem.getRelatedItems());
+            })
+            .build();
+
+
     @Override
     public void onInitialize() {
         
@@ -83,13 +95,7 @@ public class MiniScaledModInitializer implements ModInitializer {
             applyConfigClientSide(config);
             return InteractionResult.PASS;
         });
-        
-        ItemGroupEvents.modifyEntriesEvent(MinecraftItemGroups.TOOLS_ID)
-            .register(entries -> {
-                ManipulationWandItem.registerCreativeInventory(entries::accept);
-                ScaleBoxEntranceItem.registerCreativeInventory(entries::accept);
-            });
-        
+
         LOGGER.info("MiniScaled Mod Initializing");
     }
     
@@ -97,7 +103,7 @@ public class MiniScaledModInitializer implements ModInitializer {
         try {
             ResourceLocation identifier = new ResourceLocation(miniScaledConfig.creationItem);
             
-            Item creationItem = BuiltInRegistries.ITEM.get(identifier);
+            Item creationItem = Registry.ITEM.get(identifier);
             
             if (creationItem != Items.AIR) {
                 ScaleBoxEntranceCreation.creationItem = creationItem;

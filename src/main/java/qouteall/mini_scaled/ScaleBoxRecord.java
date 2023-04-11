@@ -1,6 +1,7 @@
 package qouteall.mini_scaled;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.minecraft.core.Registry;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import qouteall.q_misc_util.my_util.IntBoxUtils;
 
 public class ScaleBoxRecord extends SavedData {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScaleBoxRecord.class);
@@ -137,7 +138,7 @@ public class ScaleBoxRecord extends SavedData {
         public IntBox getOuterAreaBox() {
             AARotation rot = getEntranceRotation();
             BlockPos actualEntranceSize = rot.transform(currentEntranceSize);
-            return IntBox.getBoxByPosAndSignedSize(currentEntrancePos, actualEntranceSize);
+            return IntBoxUtils.getBoxByPosAndSignedSize(currentEntrancePos, actualEntranceSize);
         }
         
         public IntBox getInnerAreaBox() {
@@ -201,7 +202,7 @@ public class ScaleBoxRecord extends SavedData {
             ownerNameCache = tag.getString("ownerNameCache");
             if (tag.contains("currentEntranceDim")) {
                 currentEntranceDim = ResourceKey.create(
-                    Registries.DIMENSION,
+                    Registry.DIMENSION_REGISTRY,
                     new ResourceLocation(tag.getString("currentEntranceDim"))
                 );
             }

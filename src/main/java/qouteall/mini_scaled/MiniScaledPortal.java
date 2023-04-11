@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -81,7 +80,7 @@ public class MiniScaledPortal extends Portal {
         ).fireImmune().trackable(96, 20).build();
         setEntityType.accept(entityType);
         Registry.register(
-            BuiltInRegistries.ENTITY_TYPE,
+            Registry.ENTITY_TYPE,
             new ResourceLocation(id),
             entityType
         );
@@ -93,7 +92,7 @@ public class MiniScaledPortal extends Portal {
             () -> entityType,
             "mini_scaled:portal",
             MiniScaledPortal::new,
-            BuiltInRegistries.ENTITY_TYPE
+            Registry.ENTITY_TYPE
         );
     }
     

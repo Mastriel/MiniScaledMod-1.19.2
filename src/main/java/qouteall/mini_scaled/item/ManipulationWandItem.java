@@ -1,11 +1,11 @@
 package qouteall.mini_scaled.item;
 
+import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -16,6 +16,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -40,14 +41,15 @@ import java.util.function.Consumer;
 public class ManipulationWandItem extends Item {
     private static final Logger LOGGER = LoggerFactory.getLogger(ManipulationWandItem.class);
     
-    public static final ManipulationWandItem instance = new ManipulationWandItem(new Item.Properties());
+    public static final ManipulationWandItem instance = new ManipulationWandItem(new FabricItemSettings().group(CreativeModeTab.TAB_TOOLS));
     
     public static void init() {
         Registry.register(
-            BuiltInRegistries.ITEM,
+            Registry.ITEM,
             new ResourceLocation("mini_scaled:manipulation_wand"),
             instance
         );
+
     }
     
     public static enum Mode {

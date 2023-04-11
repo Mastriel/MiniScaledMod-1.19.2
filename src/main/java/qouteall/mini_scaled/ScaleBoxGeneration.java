@@ -1,7 +1,23 @@
 package qouteall.mini_scaled;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +26,6 @@ import qouteall.imm_ptl.core.chunk_loading.ChunkLoader;
 import qouteall.imm_ptl.core.chunk_loading.DimensionalChunkPos;
 import qouteall.imm_ptl.core.portal.PortalExtension;
 import qouteall.imm_ptl.core.portal.PortalManipulation;
-import org.apache.commons.lang3.Validate;
 import qouteall.mini_scaled.block.BoxBarrierBlock;
 import qouteall.mini_scaled.block.ScaleBoxPlaceholderBlock;
 import qouteall.mini_scaled.block.ScaleBoxPlaceholderBlockEntity;
@@ -18,67 +33,51 @@ import qouteall.q_misc_util.Helper;
 import qouteall.q_misc_util.my_util.AARotation;
 import qouteall.q_misc_util.my_util.DQuaternion;
 import qouteall.q_misc_util.my_util.IntBox;
+import qouteall.q_misc_util.my_util.IntBoxUtils;
 
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-
 public class ScaleBoxGeneration {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScaleBoxGeneration.class);
-    
+
     public static final int[] supportedScales = {4, 8, 16, 32};
-    
+
     public static void putScaleBoxIntoWorld(
-        ScaleBoxRecord.Entry entry,
-        ServerLevel world, BlockPos outerBoxBasePos,
-        AARotation rotation
+            ScaleBoxRecord.Entry entry,
+            ServerLevel world, BlockPos outerBoxBasePos,
+            AARotation rotation
     ) {
         entry.currentEntranceDim = world.dimension();
         entry.currentEntrancePos = outerBoxBasePos;
         entry.entranceRotation = rotation;
         entry.generation++;
-        
+
         ScaleBoxRecord.get().setDirty(true);
-        
+
         ServerLevel voidWorld = VoidDimension.getVoidWorld();
         createScaleBoxPortals(voidWorld, world, entry);
-        
+
         entry.getOuterAreaBox().stream().forEach(outerPos -> {
             world.setBlockAndUpdate(outerPos, ScaleBoxPlaceholderBlock.instance.defaultBlockState());
-            
+
             BlockEntity blockEntity = world.getBlockEntity(outerPos);
             if (blockEntity == null) {
                 System.err.println("cannot find block entity for scale box");
-            }
-            else {
+            } else {
                 ScaleBoxPlaceholderBlockEntity be = (ScaleBoxPlaceholderBlockEntity) blockEntity;
                 be.boxId = entry.id;
                 be.isBasePos = outerPos.equals(entry.currentEntrancePos);
             }
         });
     }
-    
+
     private static void createScaleBoxPortals(
-        ServerLevel innerWorld,
-        ServerLevel outerWorld,
-        ScaleBoxRecord.Entry entry
+            ServerLevel innerWorld,
+            ServerLevel outerWorld,
+            ScaleBoxRecord.Entry entry
     ) {
         AARotation entranceRotation = entry.getEntranceRotation();
         AARotation toInnerRotation = entranceRotation.getInverse();
@@ -89,28 +88,29 @@ public class ScaleBoxGeneration {
         DQuaternion quaternion = toInnerRotation.matrix.toQuaternion();
         int boxId = entry.id;
         int generation = entry.generation;
-        
+
         for (Direction outerDirection : Direction.values()) {
             MiniScaledPortal portal = MiniScaledPortal.entityType.create(outerWorld);
             Validate.notNull(portal);
-            
+
             portal.setDestinationDimension(innerWorld.dimension());
-            
+
             Direction innerDirection = toInnerRotation.transformDirection(outerDirection);
-            
+
             portal.setOriginPos(Helper.getBoxSurface(outerAreaBox, outerDirection).getCenter());
             portal.setDestination(Helper.getBoxSurface(innerAreaBox, innerDirection).getCenter());
-            
+
             Tuple<Direction, Direction> perpendicularDirections = Helper.getPerpendicularDirections(outerDirection);
             Direction pd1 = perpendicularDirections.getA();
             Direction pd2 = perpendicularDirections.getB();
-            
-            portal.setOrientation(Vec3.atLowerCornerOf(pd1.getNormal()), Vec3.atLowerCornerOf(pd2.getNormal()));
-            portal.setWidth(Helper.getCoordinate(outerAreaBoxSize, pd1.getAxis()));
-            portal.setHeight(Helper.getCoordinate(outerAreaBoxSize, pd2.getAxis()));
-            
-            portal.setRotation(quaternion);
-            
+
+            portal.setOrientationAndSize(
+                    Vec3.atLowerCornerOf(pd1.getNormal()), Vec3.atLowerCornerOf(pd2.getNormal()),
+                    Helper.getCoordinate(outerAreaBoxSize, pd1.getAxis()),
+                    Helper.getCoordinate(outerAreaBoxSize, pd2.getAxis())
+            );
+            portal.setRotationTransformation(quaternion.toMcQuaternion());
+
             portal.scaling = scale;
             portal.teleportChangesScale = entry.teleportChangesScale;
             portal.setTeleportChangesGravity(entry.teleportChangesGravity);
@@ -122,34 +122,34 @@ public class ScaleBoxGeneration {
             portal.setInteractable(false);
             portal.boxId = boxId;
             portal.generation = generation;
-            
+
             McHelper.spawnServerEntity(portal);
-            
+
             MiniScaledPortal reversePortal =
-                PortalManipulation.createReversePortal(portal, MiniScaledPortal.entityType);
-            
+                    PortalManipulation.createReversePortal(portal, MiniScaledPortal.entityType);
+
             reversePortal.fuseView = false;
             reversePortal.renderingMergable = true;
             reversePortal.hasCrossPortalCollision = true;
             reversePortal.setInteractable(false);
             reversePortal.boxId = boxId;
             reversePortal.generation = generation;
-            
+
             McHelper.spawnServerEntity(reversePortal);
         }
     }
-    
-    
+
+
     public static ScaleBoxRecord.Entry getOrCreateEntry(
-        UUID playerId, String playerName, int scale, DyeColor color, ScaleBoxRecord record
+            UUID playerId, String playerName, int scale, DyeColor color, ScaleBoxRecord record
     ) {
         Validate.notNull(playerId);
-        
+
         ScaleBoxRecord.Entry entry = record.getEntryByPredicate(e -> {
             return e.ownerId.equals(playerId) && e.color == color &&
-                e.scale == scale;
+                    e.scale == scale;
         });
-        
+
         if (entry == null) {
             int newId = allocateId(record);
             ScaleBoxRecord.Entry newEntry = new ScaleBoxRecord.Entry();
@@ -163,60 +163,60 @@ public class ScaleBoxGeneration {
             newEntry.currentEntranceSize = new BlockPos(1, 1, 1);
             record.addEntry(newEntry);
             record.setDirty(true);
-            
+
             initializeInnerBoxBlocks(null, newEntry);
-            
+
             entry = newEntry;
         }
         return entry;
     }
-    
+
     private static int allocateId(ScaleBoxRecord record) {
         return record.allocateId();
     }
-    
+
     private static BlockPos allocateInnerBoxPos(int boxId) {
         int xIndex = boxId % 256;
         int zIndex = Mth.intFloorDiv(boxId, 256);
-        
+
         return new BlockPos(xIndex * 16 * 32, 64, zIndex * 16 * 32);
     }
-    
+
     public static BlockPos getNearestPosInScaleBoxToTeleportTo(BlockPos pos) {
         double gridLen = 16.0 * 32;
         return new BlockPos(
-            Math.round(pos.getX() / gridLen) * gridLen + 2,
-            64 + 2,
-            Math.round(pos.getZ() / gridLen) * gridLen + 2
+                Math.round(pos.getX() / gridLen) * gridLen + 2,
+                64 + 2,
+                Math.round(pos.getZ() / gridLen) * gridLen + 2
         );
     }
-    
+
     public static void initializeInnerBoxBlocks(
-        @Nullable BlockPos oldEntranceSize,
-        ScaleBoxRecord.Entry entry
+            @Nullable BlockPos oldEntranceSize,
+            ScaleBoxRecord.Entry entry
     ) {
         IntBox innerAreaBox = entry.getInnerAreaBox();
-        
+
         ServerLevel voidWorld = VoidDimension.getVoidWorld();
-        
+
         ChunkLoader chunkLoader = new ChunkLoader(
-            new DimensionalChunkPos(
-                voidWorld.dimension(),
-                new ChunkPos(innerAreaBox.getCenter())
-            ),
-            Math.max(innerAreaBox.getSize().getX(), innerAreaBox.getSize().getZ()) / 16 + 2
+                new DimensionalChunkPos(
+                        voidWorld.dimension(),
+                        new ChunkPos(innerAreaBox.getCenter())
+                ),
+                Math.max(innerAreaBox.getSize().getX(), innerAreaBox.getSize().getZ()) / 16 + 2
         );
-        
+
         Block glassBlock = getGlassBlock(entry.color);
         BlockState frameBlock = glassBlock.defaultBlockState();
-        
+
         // set block after fulling loading the chunk
         // to avoid lighting problems
         chunkLoader.loadChunksAndDo(() -> {
             IntBox newEntranceOffsets = IntBox.fromBasePointAndSize(BlockPos.ZERO, entry.currentEntranceSize);
             IntBox oldEntranceOffsets = oldEntranceSize != null ?
-                IntBox.fromBasePointAndSize(BlockPos.ZERO, oldEntranceSize) : null;
-            
+                    IntBox.fromBasePointAndSize(BlockPos.ZERO, oldEntranceSize) : null;
+
             // clear the barrier blocks if the scale box expanded
             newEntranceOffsets.stream().forEach(offset -> {
                 if (oldEntranceOffsets != null) {
@@ -225,27 +225,27 @@ public class ScaleBoxGeneration {
                         return;
                     }
                 }
-                
+
                 entry.getInnerUnitBox(offset).fastStream().forEach(blockPos -> {
                     voidWorld.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                 });
             });
-            
+
             if (oldEntranceOffsets != null) {
                 // clear the shrunk area's blocks
                 oldEntranceOffsets.stream().forEach(offset -> {
                     if (newEntranceOffsets.contains(offset)) {
                         return;
                     }
-                    
+
                     IntBox innerUnitBox = entry.getInnerUnitBox(offset);
-                    
+
                     innerUnitBox.fastStream().forEach(blockPos -> {
                         voidWorld.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                     });
                 });
             }
-            
+
             // put the new barrier blocks
             IntBox expanded = innerAreaBox.getAdjusted(-1, -1, -1, 1, 1, 1);
             for (Direction direction : Direction.values()) {
@@ -253,21 +253,21 @@ public class ScaleBoxGeneration {
                     voidWorld.setBlockAndUpdate(blockPos, BoxBarrierBlock.instance.defaultBlockState());
                 });
             }
-            
+
             // find the untouched unit regions
             Set<BlockPos> untouchedRegionOffsets = newEntranceOffsets.stream().filter(
-                offset -> isUnitRegionUntouched(entry, offset, voidWorld, frameBlock)
+                    offset -> isUnitRegionUntouched(entry, offset, voidWorld, frameBlock)
             ).map(BlockPos::immutable).collect(Collectors.toSet());
-            
+
             // clear the untouched unit regions
             untouchedRegionOffsets.forEach(offset -> {
                 IntBox innerUnitBox = entry.getInnerUnitBox(offset);
-                
+
                 innerUnitBox.fastStream().forEach(blockPos -> {
                     voidWorld.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                 });
             });
-            
+
             // regenerate the outer frame in the untouched unit regions
             for (IntBox edge : entry.getInnerAreaLocalBox().get12Edges()) {
                 edge.fastStream().forEach(blockOffset -> {
@@ -278,38 +278,37 @@ public class ScaleBoxGeneration {
                     }
                 });
             }
-            
+
         });
-        
+
     }
-    
+
     // untouched means it's all air, except that on the edge it can have frame blocks
     private static boolean isUnitRegionUntouched(
-        ScaleBoxRecord.Entry entry,
-        BlockPos regionOffset,
-        ServerLevel voidWorld,
-        BlockState frameBlock
+            ScaleBoxRecord.Entry entry,
+            BlockPos regionOffset,
+            ServerLevel voidWorld,
+            BlockState frameBlock
     ) {
         IntBox innerUnitBox = entry.getInnerUnitBox(regionOffset);
         return innerUnitBox.fastStream().allMatch(blockPos -> {
             BlockState blockState = voidWorld.getBlockState(blockPos);
-            if (innerUnitBox.isOnEdge(blockPos)) {
+            if (IntBoxUtils.isOnEdge(innerUnitBox, blockPos)) {
                 return blockState.isAir() || blockState == frameBlock;
-            }
-            else {
+            } else {
                 return blockState.isAir();
             }
         });
     }
-    
+
     public static Block getGlassBlock(DyeColor color) {
-        return BuiltInRegistries.BLOCK.get(new ResourceLocation("minecraft:" + color.getName() + "_stained_glass"));
+        return Registry.BLOCK.get(new ResourceLocation("minecraft:" + color.getName() + "_stained_glass"));
     }
-    
+
     public static boolean isValidScale(int size) {
         return Arrays.stream(supportedScales).anyMatch(s -> s == size);
     }
-    
+
     // will set dirty
     public static void updateScaleBoxPortals(ScaleBoxRecord.Entry entry) {
         ResourceKey<Level> currentEntranceDim = entry.currentEntranceDim;
@@ -318,15 +317,15 @@ public class ScaleBoxGeneration {
             return;
         }
         putScaleBoxIntoWorld(
-            entry,
-            McHelper.getServerWorld(currentEntranceDim),
-            entry.currentEntrancePos,
-            entry.getEntranceRotation()
+                entry,
+                McHelper.getServerWorld(currentEntranceDim),
+                entry.currentEntrancePos,
+                entry.getEntranceRotation()
         );
     }
-    
+
     public static void createInnerPortalsPointingToVoidUnderneath(
-        ScaleBoxRecord.Entry entry
+            ScaleBoxRecord.Entry entry
     ) {
         ServerLevel voidWorld = VoidDimension.getVoidWorld();
         AABB innerAreaBox = entry.getInnerAreaBox().toRealNumberBox();
@@ -336,25 +335,25 @@ public class ScaleBoxGeneration {
         for (Direction innerDirection : Direction.values()) {
             MiniScaledPortal portal = MiniScaledPortal.entityType.create(voidWorld);
             Validate.notNull(portal);
-            
+
             portal.setOriginPos(Helper.getBoxSurface(innerAreaBox, innerDirection).getCenter());
             portal.setDestination(portal.getOriginPos().add(0, -1000, 0));
             portal.setDestinationDimension(voidWorld.dimension());
-            
+
             Tuple<Direction, Direction> perpendicularDirections =
-                Helper.getPerpendicularDirections(innerDirection.getOpposite());
+                    Helper.getPerpendicularDirections(innerDirection.getOpposite());
             Direction pd1 = perpendicularDirections.getA();
             Direction pd2 = perpendicularDirections.getB();
-            
-            portal.setOrientation(Vec3.atLowerCornerOf(pd1.getNormal()), Vec3.atLowerCornerOf(pd2.getNormal()));
-            portal.setWidth(Helper.getCoordinate(innerAreaBoxSize, pd1.getAxis()));
-            portal.setHeight(Helper.getCoordinate(innerAreaBoxSize, pd2.getAxis()));
-            
+
+            portal.setOrientationAndSize(Vec3.atLowerCornerOf(pd1.getNormal()), Vec3.atLowerCornerOf(pd2.getNormal()),
+                    Helper.getCoordinate(innerAreaBoxSize, pd1.getAxis()),
+                    Helper.getCoordinate(innerAreaBoxSize, pd2.getAxis()));
+
             portal.renderingMergable = true;
             portal.portalTag = "mini_scaled:scaled_box_inner_wrapping";
             portal.boxId = boxId;
             portal.generation = generation;
-            
+
             McHelper.spawnServerEntity(portal);
         }
     }

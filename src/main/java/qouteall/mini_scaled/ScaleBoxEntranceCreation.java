@@ -31,7 +31,7 @@ public class ScaleBoxEntranceCreation {
     private static final List<BoxFrameMatcher> boxFrameMatchers =
         Arrays.stream(ScaleBoxGeneration.supportedScales).mapToObj(
             s -> new BoxFrameMatcher(new BlockPos(s, s, s))
-        ).collect(Collectors.toList());
+        ).toList();
     
     
     public static void init() {

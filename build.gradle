@@ -44,7 +44,7 @@ dependencies {
 		officialMojangMappings() {
 			setNameSyntheticMembers(false)
 		}
-		parchment("org.parchmentmc.data:parchment-1.19.3:2022.12.18")
+		parchment("org.parchmentmc.data:parchment-1.19.2:2022.11.27")
 	}
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
@@ -60,11 +60,11 @@ dependencies {
 //		transitive(false)
 //	}
 
-	modImplementation ('com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:v2.4.8-mc1.19.3'){
+	modImplementation ('com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:v2.2.3-1.19.2'){
 		exclude(group: "net.fabricmc.fabric-api")
 		transitive(false)
 	}
-	modImplementation ('com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:v2.4.8-mc1.19.3'){
+	modImplementation ('com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:v2.2.3-1.19.2'){
 		exclude(group: "net.fabricmc.fabric-api")
 		transitive(false)
 	}

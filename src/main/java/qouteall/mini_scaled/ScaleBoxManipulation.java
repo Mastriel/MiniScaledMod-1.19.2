@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import qouteall.q_misc_util.my_util.IntBoxUtils;
 
 public class ScaleBoxManipulation {
     private static AARotation getEntranceRotationForPlacing(UseOnContext context) {
@@ -111,10 +112,10 @@ public class ScaleBoxManipulation {
         BlockPos entranceSize = entry.currentEntranceSize;
         BlockPos transformedEntranceSize = entranceRotation.transform(entranceSize);
         
-        BlockPos realPlacementPos = IntBox.getBoxByPosAndSignedSize(BlockPos.ZERO, transformedEntranceSize)
+        BlockPos realPlacementPos = IntBoxUtils.getBoxByPosAndSignedSize(BlockPos.ZERO, transformedEntranceSize)
             .stream()
             .map(offsetFromBasePosToPlacementPos -> placementPos.subtract(offsetFromBasePosToPlacementPos))
-            .filter(basePosCandidate -> IntBox.getBoxByPosAndSignedSize(basePosCandidate, transformedEntranceSize)
+            .filter(basePosCandidate -> IntBoxUtils.getBoxByPosAndSignedSize(basePosCandidate, transformedEntranceSize)
                 .stream().allMatch(
                     blockPos -> world.getBlockState(blockPos).isAir()
                         && !blockPos.equals(player.blockPosition()) // should not intersect with player
@@ -329,7 +330,7 @@ public class ScaleBoxManipulation {
         
         BlockPos transformedNewEntranceSize = entry.getEntranceRotation().transform(newEntranceSize);
         
-        boolean areaClear = IntBox.getBoxByPosAndSignedSize(entry.currentEntrancePos, transformedNewEntranceSize)
+        boolean areaClear = IntBoxUtils.getBoxByPosAndSignedSize(entry.currentEntrancePos, transformedNewEntranceSize)
             .fastStream().allMatch(blockPos -> {
                 BlockState blockState = world.getBlockState(blockPos);
                 return blockState.isAir() || blockState.getBlock() == ScaleBoxPlaceholderBlock.instance;

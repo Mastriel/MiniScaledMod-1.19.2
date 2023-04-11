@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -34,7 +33,7 @@ public class BoxBarrierBlock extends Block {
     
     public static void init() {
         Registry.register(
-            BuiltInRegistries.BLOCK,
+            Registry.BLOCK,
             new ResourceLocation("mini_scaled", "barrier"),
             BoxBarrierBlock.instance
         );

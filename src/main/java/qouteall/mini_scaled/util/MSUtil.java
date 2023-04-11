@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -70,7 +71,8 @@ public class MSUtil {
     }
     
     public static Vec3 getGravityVec(Entity entity) {
-        Direction gravity = GravityChangerInterface.invoker.getGravityDirection(entity);
+        if (!(entity instanceof Player)) return Vec3.ZERO;
+        Direction gravity = GravityChangerInterface.invoker.getGravityDirection((Player)entity);
         Vec3 gravityVec = Vec3.atLowerCornerOf(gravity.getNormal());
         return gravityVec;
     }

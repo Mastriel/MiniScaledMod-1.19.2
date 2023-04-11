@@ -1,5 +1,9 @@
 package qouteall.mini_scaled.item;
 
+import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
+import net.fabricmc.fabric.mixin.item.group.ItemGroupMixin;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -8,16 +12,11 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import qouteall.mini_scaled.ScaleBoxGeneration;
@@ -26,11 +25,11 @@ import qouteall.mini_scaled.ScaleBoxRecord;
 
 public class ScaleBoxEntranceItem extends Item {
     
-    public static final ScaleBoxEntranceItem instance = new ScaleBoxEntranceItem(new Item.Properties());
+    public static final ScaleBoxEntranceItem instance = new ScaleBoxEntranceItem(new FabricItemSettings());
     
     public static void init() {
         Registry.register(
-            BuiltInRegistries.ITEM,
+            Registry.ITEM,
             new ResourceLocation("mini_scaled:scale_box_item"),
             instance
         );
@@ -115,18 +114,22 @@ public class ScaleBoxEntranceItem extends Item {
 //        }
     }
     
-    public static void registerCreativeInventory(Consumer<ItemStack> func) {
+    public static NonNullList<ItemStack> getRelatedItems() {
+        NonNullList<ItemStack> list = NonNullList.create();
         for (int scale : ScaleBoxGeneration.supportedScales) {
             for (DyeColor dyeColor : DyeColor.values()) {
                 ItemStack itemStack = new ItemStack(instance);
-                
+
                 ItemInfo itemInfo = new ItemInfo(scale, dyeColor);
                 itemInfo.writeToTag(itemStack.getOrCreateTag());
-                
-                func.accept(itemStack);
+
+                list.add(itemStack);
+
             }
         }
+        return list;
     }
+
     
     private static final Component spaceText = Component.literal(" ");
     

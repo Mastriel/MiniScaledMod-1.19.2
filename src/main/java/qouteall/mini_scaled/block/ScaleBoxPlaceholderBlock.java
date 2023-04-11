@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockGetter;
@@ -36,7 +35,7 @@ public class ScaleBoxPlaceholderBlock extends BaseEntityBlock {
     
     public static void init() {
         Registry.register(
-            BuiltInRegistries.BLOCK,
+            Registry.BLOCK,
             new ResourceLocation("mini_scaled", "scale_box_placeholder"),
             ScaleBoxPlaceholderBlock.instance
         );
